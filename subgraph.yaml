@@ -1,36 +1,40 @@
 specVersion: 0.0.2
-description: FoxSwap is a decentralized protocol for automated token exchange on Harmony.
-repository: https://github.com/FarmersOnlyFi/subgraph
+description: Foxswap is a decentralized protocol for automated token exchange on Harmony Protocol.
+repository: https://github.com/Uniswap/uniswap-v2-subgraph
 schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
-    name: FoxswapFactory
+    name: Factory
     network: mainnet
+
     source:
       address: '0xfA53b963A39621126bf45F647F813952cD3c5C66'
       abi: Factory
-      startBlock: 21300000
+      startBlock: 21389532
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.3
       language: wasm/assemblyscript
       file: ./src/mappings/factory.ts
+
       entities:
         - Pair
         - Token
       abis:
         - name: Factory
           file: ./abis/factory.json
-        - name: HRC20
-          file: ./abis/HRC20.json
-        - name: HRC20SymbolBytes
-          file: ./abis/HRC20SymbolBytes.json
-        - name: HRC20NameBytes
-          file: ./abis/HRC20NameBytes.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: ERC20SymbolBytes
+          file: ./abis/ERC20SymbolBytes.json
+        - name: ERC20NameBytes
+          file: ./abis/ERC20NameBytes.json
       eventHandlers:
         - event: PairCreated(indexed address,indexed address,address,uint256)
           handler: handleNewPair
+
+
 templates:
   - kind: ethereum/contract
     name: Pair
@@ -39,7 +43,7 @@ templates:
       abi: Pair
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.3
       language: wasm/assemblyscript
       file: ./src/mappings/core.ts
       entities:

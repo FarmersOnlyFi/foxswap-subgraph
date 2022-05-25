@@ -1,9 +1,9 @@
-type FoxswapFactory @entity {
+type UniswapFactory @entity {
   # factory address
   id: ID!
 
   # pair info
-  pairCount: BigInt!
+  pairCount: Int!
 
   # total volume
   totalVolumeUSD: BigDecimal!
@@ -68,9 +68,7 @@ type Pair @entity {
   # derived liquidity
   reserveETH: BigDecimal!
   reserveUSD: BigDecimal!
-  # used for separating per pair reserves and global
-  trackedReserveETH: BigDecimal!
-
+  trackedReserveETH: BigDecimal! # used for separating per pair reserves and global
   # Price in terms of the asset pair
   token0Price: BigDecimal!
   token1Price: BigDecimal!
@@ -133,9 +131,9 @@ type Transaction @entity {
   timestamp: BigInt!
   # This is not the reverse of Mint.transaction; it is only used to
   # track incomplete mints (similar for burns and swaps)
-  mints: [Mint!]!
-  burns: [Burn!]!
-  swaps: [Swap!]!
+  mints: [Mint]!
+  burns: [Burn]!
+  swaps: [Swap]!
 }
 
 type Mint @entity {
@@ -216,8 +214,8 @@ type Bundle @entity {
   ethPrice: BigDecimal! # price of ETH usd
 }
 
-# Data accumulated and condensed into day stats for all of Foxswap
-type FoxswapDayData @entity {
+# Data accumulated and condensed into day stats for all of Uniswap
+type UniswapDayData @entity {
   id: ID! # timestamp rounded to current day by dividing by 86400
   date: Int!
 
@@ -241,9 +239,6 @@ type PairHourData @entity {
   # reserves
   reserve0: BigDecimal!
   reserve1: BigDecimal!
-
-  # total supply for LP historical returns
-  totalSupply: BigDecimal!
 
   # derived liquidity
   reserveUSD: BigDecimal!

@@ -1,9 +1,9 @@
 /* eslint-disable prefer-const */
-import { BigInt, BigDecimal, store, Address, ethereum } from '@graphprotocol/graph-ts'
+import { BigInt, BigDecimal, store, Address } from '@graphprotocol/graph-ts'
 import {
   Pair,
   Token,
-  FoxswapFactory,
+  UniswapFactory,
   Transaction,
   Mint as MintEvent,
   Burn as BurnEvent,
@@ -11,7 +11,7 @@ import {
   Bundle
 } from '../types/schema'
 import { Pair as PairContract, Mint, Burn, Swap, Transfer, Sync } from '../types/templates/Pair/Pair'
-import { updatePairDayData, updateTokenDayData, updateFoxswapDayData, updatePairHourData } from './dayUpdates'
+import { updatePairDayData, updateTokenDayData, updateUniswapDayData, updatePairHourData } from './dayUpdates'
 import { getEthPriceInUSD, findEthPerToken, getTrackedVolumeUSD, getTrackedLiquidityUSD } from './pricing'
 import {
   convertTokenToDecimal,
@@ -35,7 +35,7 @@ export function handleTransfer(event: Transfer): void {
     return
   }
 
-  let factory = FoxswapFactory.load(FACTORY_ADDRESS)
+  let factory = UniswapFactory.load(FACTORY_ADDRESS)
   let transactionHash = event.transaction.hash.toHexString()
 
   // user stats
@@ -214,10 +214,10 @@ export function handleSync(event: Sync): void {
   let pair = Pair.load(event.address.toHex())
   let token0 = Token.load(pair.token0)
   let token1 = Token.load(pair.token1)
-  let foxswap = FoxswapFactory.load(FACTORY_ADDRESS)
+  let uniswap = UniswapFactory.load(FACTORY_ADDRESS)
 
   // reset factory liquidity by subtracting onluy tarcked liquidity
-  foxswap.totalLiquidityETH = foxswap.totalLiquidityETH.minus(pair.trackedReserveETH as BigDecimal)
+  uniswap.totalLiquidityETH = uniswap.totalLiquidityETH.minus(pair.trackedReserveETH as BigDecimal)
 
   // reset token total liquidity amounts
   token0.totalLiquidity = token0.totalLiquidity.minus(pair.reserve0)
@@ -261,8 +261,8 @@ export function handleSync(event: Sync): void {
   pair.reserveUSD = pair.reserveETH.times(bundle.ethPrice)
 
   // use tracked amounts globally
-  foxswap.totalLiquidityETH = foxswap.totalLiquidityETH.plus(trackedLiquidityETH)
-  foxswap.totalLiquidityUSD = foxswap.totalLiquidityETH.times(bundle.ethPrice)
+  uniswap.totalLiquidityETH = uniswap.totalLiquidityETH.plus(trackedLiquidityETH)
+  uniswap.totalLiquidityUSD = uniswap.totalLiquidityETH.times(bundle.ethPrice)
 
   // now correctly set liquidity amounts for each token
   token0.totalLiquidity = token0.totalLiquidity.plus(pair.reserve0)
@@ -270,7 +270,7 @@ export function handleSync(event: Sync): void {
 
   // save entities
   pair.save()
-  foxswap.save()
+  uniswap.save()
   token0.save()
   token1.save()
 }
@@ -281,7 +281,7 @@ export function handleMint(event: Mint): void {
   let mint = MintEvent.load(mints[mints.length - 1])
 
   let pair = Pair.load(event.address.toHex())
-  let foxswap = FoxswapFactory.load(FACTORY_ADDRESS)
+  let uniswap = UniswapFactory.load(FACTORY_ADDRESS)
 
   let token0 = Token.load(pair.token0)
   let token1 = Token.load(pair.token1)
@@ -303,13 +303,13 @@ export function handleMint(event: Mint): void {
 
   // update txn counts
   pair.txCount = pair.txCount.plus(ONE_BI)
-  foxswap.txCount = foxswap.txCount.plus(ONE_BI)
+  uniswap.txCount = uniswap.txCount.plus(ONE_BI)
 
   // save entities
   token0.save()
   token1.save()
   pair.save()
-  foxswap.save()
+  uniswap.save()
 
   mint.sender = event.params.sender
   mint.amount0 = token0Amount as BigDecimal
@@ -325,7 +325,7 @@ export function handleMint(event: Mint): void {
   // update day entities
   updatePairDayData(event)
   updatePairHourData(event)
-  updateFoxswapDayData(event)
+  updateUniswapDayData(event)
   updateTokenDayData(token0 as Token, event)
   updateTokenDayData(token1 as Token, event)
 }
@@ -342,7 +342,7 @@ export function handleBurn(event: Burn): void {
   let burn = BurnEvent.load(burns[burns.length - 1])
 
   let pair = Pair.load(event.address.toHex())
-  let foxswap = FoxswapFactory.load(FACTORY_ADDRESS)
+  let uniswap = UniswapFactory.load(FACTORY_ADDRESS)
 
   //update token info
   let token0 = Token.load(pair.token0)
@@ -362,14 +362,14 @@ export function handleBurn(event: Burn): void {
     .times(bundle.ethPrice)
 
   // update txn counts
-  foxswap.txCount = foxswap.txCount.plus(ONE_BI)
+  uniswap.txCount = uniswap.txCount.plus(ONE_BI)
   pair.txCount = pair.txCount.plus(ONE_BI)
 
   // update global counter and save
   token0.save()
   token1.save()
   pair.save()
-  foxswap.save()
+  uniswap.save()
 
   // update burn
   // burn.sender = event.params.sender
@@ -387,7 +387,7 @@ export function handleBurn(event: Burn): void {
   // update day entities
   updatePairDayData(event)
   updatePairHourData(event)
-  updateFoxswapDayData(event)
+  updateUniswapDayData(event)
   updateTokenDayData(token0 as Token, event)
   updateTokenDayData(token1 as Token, event)
 }
@@ -448,17 +448,17 @@ export function handleSwap(event: Swap): void {
   pair.save()
 
   // update global values, only used tracked amounts for volume
-  let foxswap = FoxswapFactory.load(FACTORY_ADDRESS)
-  foxswap.totalVolumeUSD = foxswap.totalVolumeUSD.plus(trackedAmountUSD)
-  foxswap.totalVolumeETH = foxswap.totalVolumeETH.plus(trackedAmountETH)
-  foxswap.untrackedVolumeUSD = foxswap.untrackedVolumeUSD.plus(derivedAmountUSD)
-  foxswap.txCount = foxswap.txCount.plus(ONE_BI)
+  let uniswap = UniswapFactory.load(FACTORY_ADDRESS)
+  uniswap.totalVolumeUSD = uniswap.totalVolumeUSD.plus(trackedAmountUSD)
+  uniswap.totalVolumeETH = uniswap.totalVolumeETH.plus(trackedAmountETH)
+  uniswap.untrackedVolumeUSD = uniswap.untrackedVolumeUSD.plus(derivedAmountUSD)
+  uniswap.txCount = uniswap.txCount.plus(ONE_BI)
 
   // save entities
   pair.save()
   token0.save()
   token1.save()
-  foxswap.save()
+  uniswap.save()
 
   let transaction = Transaction.load(event.transaction.hash.toHexString())
   if (transaction === null) {
@@ -505,15 +505,15 @@ export function handleSwap(event: Swap): void {
   // update day entities
   let pairDayData = updatePairDayData(event)
   let pairHourData = updatePairHourData(event)
-  let foxswapDayData = updateFoxswapDayData(event)
+  let uniswapDayData = updateUniswapDayData(event)
   let token0DayData = updateTokenDayData(token0 as Token, event)
   let token1DayData = updateTokenDayData(token1 as Token, event)
 
   // swap specific updating
-  foxswapDayData.dailyVolumeUSD = foxswapDayData.dailyVolumeUSD.plus(trackedAmountUSD)
-  foxswapDayData.dailyVolumeETH = foxswapDayData.dailyVolumeETH.plus(trackedAmountETH)
-  foxswapDayData.dailyVolumeUntracked = foxswapDayData.dailyVolumeUntracked.plus(derivedAmountUSD)
-  foxswapDayData.save()
+  uniswapDayData.dailyVolumeUSD = uniswapDayData.dailyVolumeUSD.plus(trackedAmountUSD)
+  uniswapDayData.dailyVolumeETH = uniswapDayData.dailyVolumeETH.plus(trackedAmountETH)
+  uniswapDayData.dailyVolumeUntracked = uniswapDayData.dailyVolumeUntracked.plus(derivedAmountUSD)
+  uniswapDayData.save()
 
   // swap specific updating for pair
   pairDayData.dailyVolumeToken0 = pairDayData.dailyVolumeToken0.plus(amount0Total)
@@ -529,7 +529,7 @@ export function handleSwap(event: Swap): void {
 
   // swap specific updating for token0
   token0DayData.dailyVolumeToken = token0DayData.dailyVolumeToken.plus(amount0Total)
-  token0DayData.dailyVolumeETH = token0DayData.dailyVolumeETH.plus(amount0Total.times(token0.derivedETH as BigDecimal))
+  token0DayData.dailyVolumeETH = token0DayData.dailyVolumeETH.plus(amount0Total.times(token1.derivedETH as BigDecimal))
   token0DayData.dailyVolumeUSD = token0DayData.dailyVolumeUSD.plus(
     amount0Total.times(token0.derivedETH as BigDecimal).times(bundle.ethPrice)
   )

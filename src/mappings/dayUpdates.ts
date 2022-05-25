@@ -1,34 +1,36 @@
+import { PairHourData } from './../types/schema'
 /* eslint-disable prefer-const */
-import { BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts'
-import { Bundle, Pair, PairDayData, Token, TokenDayData, FoxswapDayData, FoxswapFactory } from '../types/schema'
-import { PairHourData } from '../types/schema'
-import { FACTORY_ADDRESS, ONE_BI, ZERO_BD, ZERO_BI } from './helpers'
+import { BigInt, BigDecimal, EthereumEvent } from '@graphprotocol/graph-ts'
+import { Pair, Bundle, Token, UniswapFactory, UniswapDayData, PairDayData, TokenDayData } from '../types/schema'
+import { ONE_BI, ZERO_BD, ZERO_BI, FACTORY_ADDRESS } from './helpers'
 
-export function updateFoxswapDayData(event: ethereum.Event): FoxswapDayData {
-  let foxswap = FoxswapFactory.load(FACTORY_ADDRESS)
+export function updateUniswapDayData(event: EthereumEvent): UniswapDayData {
+  let uniswap = UniswapFactory.load(FACTORY_ADDRESS)
   let timestamp = event.block.timestamp.toI32()
   let dayID = timestamp / 86400
   let dayStartTimestamp = dayID * 86400
-  let foxswapDayData = FoxswapDayData.load(dayID.toString())
-  if (foxswapDayData === null) {
-    foxswapDayData = new FoxswapDayData(dayID.toString())
-    foxswapDayData.date = dayStartTimestamp
-    foxswapDayData.dailyVolumeUSD = ZERO_BD
-    foxswapDayData.dailyVolumeETH = ZERO_BD
-    foxswapDayData.totalVolumeUSD = ZERO_BD
-    foxswapDayData.totalVolumeETH = ZERO_BD
-    foxswapDayData.dailyVolumeUntracked = ZERO_BD
+  let uniswapDayData = UniswapDayData.load(dayID.toString())
+  if (uniswapDayData === null) {
+    uniswapDayData = new UniswapDayData(dayID.toString())
+    uniswapDayData.date = dayStartTimestamp
+    uniswapDayData.dailyVolumeUSD = ZERO_BD
+
+
+    uniswapDayData.dailyVolumeETH = ZERO_BD
+    uniswapDayData.totalVolumeUSD = ZERO_BD
+    uniswapDayData.totalVolumeETH = ZERO_BD
+    uniswapDayData.dailyVolumeUntracked = ZERO_BD
   }
 
-  foxswapDayData.totalLiquidityUSD = foxswap.totalLiquidityUSD
-  foxswapDayData.totalLiquidityETH = foxswap.totalLiquidityETH
-  foxswapDayData.txCount = foxswap.txCount
-  foxswapDayData.save()
+  uniswapDayData.totalLiquidityUSD = uniswap.totalLiquidityUSD
+  uniswapDayData.totalLiquidityETH = uniswap.totalLiquidityETH
+  uniswapDayData.txCount = uniswap.txCount
+  uniswapDayData.save()
 
-  return foxswapDayData as FoxswapDayData
+  return uniswapDayData as UniswapDayData
 }
 
-export function updatePairDayData(event: ethereum.Event): PairDayData {
+export function updatePairDayData(event: EthereumEvent): PairDayData {
   let timestamp = event.block.timestamp.toI32()
   let dayID = timestamp / 86400
   let dayStartTimestamp = dayID * 86400
@@ -44,6 +46,8 @@ export function updatePairDayData(event: ethereum.Event): PairDayData {
     pairDayData.token0 = pair.token0
     pairDayData.token1 = pair.token1
     pairDayData.pairAddress = event.address
+
+
     pairDayData.dailyVolumeToken0 = ZERO_BD
     pairDayData.dailyVolumeToken1 = ZERO_BD
     pairDayData.dailyVolumeUSD = ZERO_BD
@@ -60,7 +64,7 @@ export function updatePairDayData(event: ethereum.Event): PairDayData {
   return pairDayData as PairDayData
 }
 
-export function updatePairHourData(event: ethereum.Event): PairHourData {
+export function updatePairHourData(event: EthereumEvent): PairHourData {
   let timestamp = event.block.timestamp.toI32()
   let hourIndex = timestamp / 3600 // get unique hour within unix history
   let hourStartUnix = hourIndex * 3600 // want the rounded effect
@@ -80,7 +84,6 @@ export function updatePairHourData(event: ethereum.Event): PairHourData {
     pairHourData.hourlyTxns = ZERO_BI
   }
 
-  pairHourData.totalSupply = pair.totalSupply
   pairHourData.reserve0 = pair.reserve0
   pairHourData.reserve1 = pair.reserve1
   pairHourData.reserveUSD = pair.reserveUSD
@@ -90,7 +93,7 @@ export function updatePairHourData(event: ethereum.Event): PairHourData {
   return pairHourData as PairHourData
 }
 
-export function updateTokenDayData(token: Token, event: ethereum.Event): TokenDayData {
+export function updateTokenDayData(token: Token, event: EthereumEvent): TokenDayData {
   let bundle = Bundle.load('1')
   let timestamp = event.block.timestamp.toI32()
   let dayID = timestamp / 86400
