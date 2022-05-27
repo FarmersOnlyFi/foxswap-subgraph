@@ -2,7 +2,6 @@ import {
   Address,
   BigInt,
 } from "@graphprotocol/graph-ts"
-import {ADDRESS_ZERO, ZERO_BI} from "./helpers";
 
 // Initialize a Token Definition with the attributes
 export class TokenDefinition {
@@ -81,7 +80,7 @@ export class TokenDefinition {
   }
 
   // Helper for hardcoded tokens
-  static fromAddress(tokenAddress: Address) : TokenDefinition {
+  static fromAddress(tokenAddress: Address) : TokenDefinition | null {
     let staticDefinitions = this.getStaticDefinitions()
     let tokenAddressHex = tokenAddress.toHexString()
 
@@ -94,7 +93,7 @@ export class TokenDefinition {
     }
 
     // If not found, return null
-    return new TokenDefinition(Address.fromString(ADDRESS_ZERO), 'NULL', '', ZERO_BI)
+    return null
   }
 
 }

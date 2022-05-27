@@ -6,9 +6,9 @@
   "scripts": {
     "codegen": "graph codegen --output-dir src/types/",
     "build": "graph build",
-    "create-fox": "graph create foxswap/v2 --node http://graph.elision.link:8020/",
-    "remove-fox": "graph remove foxswap/v2 --debug --ipfs http://graph.elision.link:5001/ --node http://graph.elision.link:8020",
-    "deploy-fox": "graph deploy foxswap/v2 --debug --ipfs http://graph.elision.link:5001/ --node http://graph.elision.link:8020",
+    "create-fox": "graph create fox/v2 --node http://graph.elision.link:8020/",
+    "remove-fox": "graph remove fox/v2 --debug --ipfs http://graph.elision.link:5001/ --node http://graph.elision.link:8020",
+    "deploy-fox": "graph deploy fox/v2 --debug --ipfs http://graph.elision.link:5001/ --node http://graph.elision.link:8020",
     "remove-local": "graph remove openswap/openswap --node http://graph.elision.link:8020/",
     "deploy-local": "graph deploy openswap/uniswap --debug --ipfs http://graph.elision.link:5001/ --node http://graph.elision.link:8020",
     "deploy": "graph deploy ianlapham/uniswapv2 --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug",

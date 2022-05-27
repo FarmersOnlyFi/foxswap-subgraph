@@ -5,6 +5,7 @@ import { ERC20SymbolBytes } from '../types/Factory/ERC20SymbolBytes'
 import { ERC20NameBytes } from '../types/Factory/ERC20NameBytes'
 import { User, Bundle, Token, LiquidityPosition, LiquidityPositionSnapshot, Pair } from '../types/schema'
 import { Factory as FactoryContract } from '../types/templates/Pair/Factory'
+import { TokenDefinition } from './tokenDefinition'
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000'
 export const FACTORY_ADDRESS = '0xfA53b963A39621126bf45F647F813952cD3c5C66'
@@ -16,6 +17,9 @@ export let ONE_BD = BigDecimal.fromString('1')
 export let BI_18 = BigInt.fromI32(18)
 
 export let factoryContract = FactoryContract.bind(Address.fromString(FACTORY_ADDRESS))
+
+// rebass tokens, dont count in tracked volume
+export let UNTRACKED_PAIRS: string[] = []
 
 export function exponentToBigDecimal(decimals: BigInt): BigDecimal {
   let bd = BigDecimal.fromString('1')
@@ -46,18 +50,18 @@ export function equalToZero(value: BigDecimal): boolean {
   if (zero == formattedVal) {
     return true
   }
-  let fals = false
-  return fals
+  return false
 }
 
 export function isNullEthValue(value: string): boolean {
-  return value == '0x0000000000000000000000000000000000000000000000000000000000000001';
+  return value == '0x0000000000000000000000000000000000000000000000000000000000000001'
 }
 
 export function fetchTokenSymbol(tokenAddress: Address): string {
-  // hard coded overrides
-  if (tokenAddress.toHexString() == '0xe176ebe47d621b984a73036b9da5d834411ef734') {
-    return 'eBUSD'
+  // static definitions overrides
+  let staticDefinition = TokenDefinition.fromAddress(tokenAddress)
+  if(staticDefinition != null) {
+    return (staticDefinition as TokenDefinition).symbol
   }
 
   let contract = ERC20.bind(tokenAddress)
@@ -66,49 +70,26 @@ export function fetchTokenSymbol(tokenAddress: Address): string {
   // try types string and bytes32 for symbol
   let symbolValue = 'unknown'
   let symbolResult = contract.try_symbol()
-
-
   if (symbolResult.reverted) {
     let symbolResultBytes = contractSymbolBytes.try_symbol()
     if (!symbolResultBytes.reverted) {
       // for broken pairs that have no symbol function exposed
       if (!isNullEthValue(symbolResultBytes.value.toHexString())) {
-        symbolValue = renameSymbol(symbolResultBytes.value.toString())
+        symbolValue = symbolResultBytes.value.toString()
       }
-    }else {
-      symbolValue = 'unknown'
     }
   } else {
-    let Result = renameSymbol(symbolResult.value.toString());
-    symbolValue = Result
+    symbolValue = symbolResult.value
   }
 
   return symbolValue
 }
 
-function renameSymbol(symbol: String): String {
-  if(symbol.charAt(0) == '1'){
-    let e = 'e';
-    symbol = symbol.slice(1)
-    symbol = e.concat(symbol)
-    return symbol
-  }else if(symbol.slice(0,3) == 'bsc'){
-    let b = 'b';
-    symbol = symbol.slice(3)
-    symbol = b.concat(symbol)
-    return symbol
-  }else{
-    return symbol
-  }
-}
-
 export function fetchTokenName(tokenAddress: Address): string {
-  // hard coded overrides
-  if (tokenAddress.toHexString() == '0xe0b7927c4af23765cb51314a0e0521a9645f0e2a') {
-    return 'DGD'
-  }
-  if (tokenAddress.toHexString() == '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9') {
-    return 'Aave Token'
+  // static definitions overrides
+  let staticDefinition = TokenDefinition.fromAddress(tokenAddress)
+  if(staticDefinition != null) {
+    return (staticDefinition as TokenDefinition).name
   }
 
   let contract = ERC20.bind(tokenAddress)
@@ -143,9 +124,10 @@ export function fetchTokenTotalSupply(tokenAddress: Address): BigInt {
 }
 
 export function fetchTokenDecimals(tokenAddress: Address): BigInt {
-  // hardcode overrides
-  if (tokenAddress.toHexString() == '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9') {
-    return BigInt.fromI32(18)
+  // static definitions overrides
+  let staticDefinition = TokenDefinition.fromAddress(tokenAddress)
+  if(staticDefinition != null) {
+    return (staticDefinition as TokenDefinition).decimals
   }
 
   let contract = ERC20.bind(tokenAddress)

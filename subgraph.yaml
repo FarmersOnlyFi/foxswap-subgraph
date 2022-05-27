@@ -7,7 +7,6 @@ dataSources:
   - kind: ethereum/contract
     name: Factory
     network: mainnet
-
     source:
       address: '0xfA53b963A39621126bf45F647F813952cD3c5C66'
       abi: Factory
